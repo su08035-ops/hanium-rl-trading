@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.pt
+*.pth
+backend/data/raw/*.csv
+backend/data/processed/*.csv
+backend/experiments/*/
+!backend/experiments/.gitkeep
+.DS_Store

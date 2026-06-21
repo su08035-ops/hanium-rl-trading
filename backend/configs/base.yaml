@@ -1,0 +1,27 @@
+# 공통 설정 — 모든 실험 config가 이 파일을 상속
+ticker: "005930"
+ticker_name: "삼성전자"
+market: "KOSPI"
+
+data:
+  source: "pykrx"
+  train_start: "2018-01-01"
+  train_end: "2022-12-31"
+  test_start: "2023-01-01"
+  test_end: "2024-12-31"
+
+env:
+  initial_balance: 10_000_000
+  commission: 0.00015        # 매매 수수료율
+  action_space: 3            # 매수 / 매도 / 관망
+  window_size: 20            # 상태에 포함할 과거 일수
+
+train:
+  episodes: 500
+  batch_size: 64
+  seed: 42
+  device: "auto"             # auto → cuda if available else cpu
+
+logging:
+  log_interval: 10           # 에피소드 단위 로그 출력 간격
+  save_interval: 50          # 체크포인트 저장 간격

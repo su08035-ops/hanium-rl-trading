@@ -1,0 +1,16 @@
+extends: base.yaml
+
+algo: dqn
+network: dnn
+
+hyperparams:
+  lr: 0.001
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.01
+  epsilon_decay: 0.995
+  target_update: 10          # 타깃 네트워크 업데이트 주기 (에피소드)
+  replay_size: 10000
+
+net_params:
+  hidden_dims: [128, 64]

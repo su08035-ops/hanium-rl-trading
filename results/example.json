@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "ticker": "005930",
+    "ticker_name": "삼성전자",
+    "market": "KOSPI",
+    "data_source": "pykrx",
+    "train_period": {"start": "2018-01-01", "end": "2022-12-31"},
+    "test_period": {"start": "2023-01-01", "end": "2024-12-31"},
+    "initial_balance": 10000000
+  },
+  "results": [
+    {
+      "exp_name": "ppo_lstm",
+      "algo": "PPO",
+      "network": "LSTM",
+      "summary": {
+        "final_balance": 13250000,
+        "total_return": 0.325,
+        "annualized_return": 0.151,
+        "sharpe": 1.12,
+        "mdd": -0.184,
+        "win_rate": 0.57,
+        "num_trades": 142
+      },
+      "equity_curve": [
+        {"date": "2023-01-02", "value": 10000000},
+        {"date": "2023-06-30", "value": 11200000},
+        {"date": "2023-12-29", "value": 12100000},
+        {"date": "2024-06-28", "value": 12800000},
+        {"date": "2024-12-30", "value": 13250000}
+      ],
+      "trades": [
+        {"date": "2023-01-05", "action": "buy", "price": 61000, "qty": 50},
+        {"date": "2023-01-20", "action": "sell", "price": 63500, "qty": 50},
+        {"date": "2023-02-10", "action": "buy", "price": 60000, "qty": 50}
+      ]
+    },
+    {
+      "exp_name": "dqn_dnn",
+      "algo": "DQN",
+      "network": "DNN",
+      "summary": {
+        "final_balance": 11800000,
+        "total_return": 0.18,
+        "annualized_return": 0.086,
+        "sharpe": 0.72,
+        "mdd": -0.221,
+        "win_rate": 0.51,
+        "num_trades": 198
+      },
+      "equity_curve": [
+        {"date": "2023-01-02", "value": 10000000},
+        {"date": "2023-06-30", "value": 10500000},
+        {"date": "2023-12-29", "value": 11000000},
+        {"date": "2024-06-28", "value": 11400000},
+        {"date": "2024-12-30", "value": 11800000}
+      ],
+      "trades": [
+        {"date": "2023-01-03", "action": "buy", "price": 60500, "qty": 30},
+        {"date": "2023-01-15", "action": "sell", "price": 62000, "qty": 30},
+        {"date": "2023-02-05", "action": "buy", "price": 59500, "qty": 40}
+      ]
+    }
+  ],
+  "benchmark": {
+    "name": "buy_and_hold",
+    "summary": {
+      "total_return": 0.21,
+      "sharpe": 0.78,
+      "mdd": -0.25
+    },
+    "equity_curve": [
+      {"date": "2023-01-02", "value": 10000000},
+      {"date": "2023-06-30", "value": 10800000},
+      {"date": "2023-12-29", "value": 11300000},
+      {"date": "2024-06-28", "value": 11700000},
+      {"date": "2024-12-30", "value": 12100000}
+    ]
+  }
+}
