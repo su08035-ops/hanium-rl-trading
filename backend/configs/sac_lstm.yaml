@@ -1,0 +1,16 @@
+extends: base.yaml
+
+algo: sac
+network: lstm
+
+hyperparams:
+  lr: 0.0003
+  gamma: 0.99
+  tau: 0.005
+  alpha: 0.2
+  auto_alpha: true
+  replay_size: 10000
+
+net_params:
+  hidden_dim: 128
+  num_layers: 2

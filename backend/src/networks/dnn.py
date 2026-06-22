@@ -18,13 +18,20 @@ class DNN(BaseNetwork):
         hidden_dims = hidden_dims or [128, 64]
         self._output_dim = hidden_dims[-1]
 
-        # TODO: hidden_dims에 따른 Linear + ReLU 레이어 구성
-        # 예: input_dim → 128 → ReLU → 64 → ReLU
-        self.layers = nn.Sequential()  # TODO: 레이어 채우기
+        # Linear + ReLU 레이어 구성
+        layers = []
+        prev_dim = input_dim
+        for h_dim in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h_dim))
+            layers.append(nn.ReLU())
+            prev_dim = h_dim
+        self.layers = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: self.layers를 통과시켜 특성 벡터 반환
-        raise NotImplementedError
+        # 3D 입력 (batch, window_size, features) → 2D로 flatten
+        if x.dim() == 3:
+            x = x.reshape(x.size(0), -1)
+        return self.layers(x)
 
     @property
     def output_dim(self) -> int:

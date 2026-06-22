@@ -22,35 +22,59 @@ class ITransformerNetwork(BaseNetwork):
     def __init__(self, input_dim: int, hidden_dim: int = 128,
                  num_heads: int = 4, num_layers: int = 2,
                  seq_len: int = 20, dropout: float = 0.1, **kwargs):
-        """
-        Parameters
-        ----------
-        seq_len : int
-            각 변수의 시계열 길이 (= window_size).
-        """
         super().__init__(input_dim, **kwargs)
         self.hidden_dim = hidden_dim
         self.seq_len = seq_len
         self._output_dim = hidden_dim
 
-        # TODO: Variate Embedding
-        #   - 각 변수의 전체 시계열(seq_len,)을 하나의 토큰(hidden_dim,)으로 임베딩
-        #   - Linear(seq_len, hidden_dim) 또는 MLP
+        self.features_per_step = input_dim // seq_len
+        n_features = self.features_per_step
 
-        # TODO: Transformer Encoder
-        #   - 토큰 = 변수, 어텐션 = 변수 간 관계 학습
-        #   - nn.TransformerEncoderLayer × num_layers
+        # Variate Embedding: each variable's full time series -> one token
+        # Linear(seq_len -> hidden_dim) applied per variable
+        self.variate_embed = nn.Linear(seq_len, hidden_dim)
 
-        # TODO: Output Projection
-        #   - 모든 변수 토큰을 집계하여 최종 특성 벡터 생성
+        # Learnable variate type embedding (optional, helps distinguish variables)
+        self.variate_pos = nn.Parameter(
+            torch.randn(1, n_features, hidden_dim) * 0.02
+        )
+
+        # Transformer Encoder: attention over variable tokens
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            nhead=num_heads,
+            dim_feedforward=hidden_dim * 4,
+            dropout=dropout,
+            batch_first=True,
+            activation="gelu",
+        )
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer, num_layers=num_layers
+        )
+
+        self.norm = nn.LayerNorm(hidden_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: x shape (batch, seq_len, input_dim)
-        # 1. 전치: (batch, input_dim, seq_len) — 각 변수의 시계열을 분리
-        # 2. Variate Embedding: (batch, input_dim, hidden_dim) — 각 변수 시계열 → 토큰
-        # 3. Transformer Encoder: 변수 간 어텐션
-        # 4. 집계(평균 풀링 등) → (batch, hidden_dim)
-        raise NotImplementedError
+        if x.dim() == 2:
+            x = x.view(x.size(0), self.seq_len, self.features_per_step)
+
+        # x: (batch, seq_len, n_features)
+
+        # 1. Transpose: each variable's time series becomes a row
+        x = x.transpose(1, 2)  # (batch, n_features, seq_len)
+
+        # 2. Variate Embedding: project each variable's time series to hidden_dim
+        x = self.variate_embed(x)  # (batch, n_features, hidden_dim)
+
+        # Add variate positional encoding
+        x = x + self.variate_pos
+
+        # 3. Transformer Encoder: attention over variable tokens
+        x = self.transformer(x)  # (batch, n_features, hidden_dim)
+
+        # 4. Mean pooling over variable tokens
+        x = self.norm(x.mean(dim=1))  # (batch, hidden_dim)
+        return x
 
     @property
     def output_dim(self) -> int:

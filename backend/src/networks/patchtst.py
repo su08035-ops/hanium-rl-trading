@@ -8,6 +8,8 @@
   [20일 시계열] → [5일씩 4개 패치로 분할] → [패치 임베딩] → [Transformer] → 출력
 """
 
+import math
+
 import torch
 import torch.nn as nn
 
@@ -21,42 +23,69 @@ class PatchTSTNetwork(BaseNetwork):
     def __init__(self, input_dim: int, hidden_dim: int = 128,
                  patch_len: int = 5, stride: int = 5,
                  num_heads: int = 4, num_layers: int = 2,
-                 dropout: float = 0.1, **kwargs):
-        """
-        Parameters
-        ----------
-        patch_len : int
-            각 패치의 길이 (일 수).
-        stride : int
-            패치 간 이동 간격.
-        """
+                 dropout: float = 0.1, seq_len: int = 20, **kwargs):
         super().__init__(input_dim, **kwargs)
         self.hidden_dim = hidden_dim
         self.patch_len = patch_len
         self.stride = stride
+        self.seq_len = seq_len
         self._output_dim = hidden_dim
 
-        # TODO: Patch Embedding
-        #   - (batch, seq_len, input_dim) → 패치로 분할
-        #   - 각 패치를 Linear로 hidden_dim에 투영
+        self.features_per_step = input_dim // seq_len
 
-        # TODO: Positional Encoding
-        #   - 패치 순서 정보 추가
+        # Number of patches
+        self.num_patches = (seq_len - patch_len) // stride + 1
 
-        # TODO: Transformer Encoder
-        #   - nn.TransformerEncoderLayer × num_layers
+        # Patch embedding: flatten each patch then project
+        patch_input_dim = patch_len * self.features_per_step
+        self.patch_embed = nn.Linear(patch_input_dim, hidden_dim)
 
-        # TODO: Output Head
-        #   - 패치 출력을 평균 풀링하여 최종 특성 벡터 생성
+        # Learnable positional encoding
+        self.pos_encoding = nn.Parameter(
+            torch.randn(1, self.num_patches, hidden_dim) * 0.02
+        )
+
+        # Transformer Encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            nhead=num_heads,
+            dim_feedforward=hidden_dim * 4,
+            dropout=dropout,
+            batch_first=True,
+            activation="gelu",
+        )
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer, num_layers=num_layers
+        )
+
+        self.norm = nn.LayerNorm(hidden_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: x shape (batch, seq_len, input_dim)
-        # 1. 시계열을 patch_len 단위로 분할
-        # 2. 각 패치를 임베딩
-        # 3. Positional Encoding 추가
-        # 4. Transformer Encoder 통과
-        # 5. 평균 풀링 → (batch, hidden_dim)
-        raise NotImplementedError
+        if x.dim() == 2:
+            x = x.view(x.size(0), self.seq_len, self.features_per_step)
+
+        batch, seq_len, n_feat = x.shape
+
+        # 1. Split into patches: extract sliding windows
+        patches = []
+        for i in range(0, seq_len - self.patch_len + 1, self.stride):
+            patch = x[:, i:i + self.patch_len, :]  # (batch, patch_len, n_feat)
+            patch = patch.reshape(batch, -1)  # (batch, patch_len * n_feat)
+            patches.append(patch)
+        patches = torch.stack(patches, dim=1)  # (batch, num_patches, patch_input_dim)
+
+        # 2. Patch embedding
+        x = self.patch_embed(patches)  # (batch, num_patches, hidden_dim)
+
+        # 3. Add positional encoding
+        x = x + self.pos_encoding
+
+        # 4. Transformer Encoder
+        x = self.transformer(x)  # (batch, num_patches, hidden_dim)
+
+        # 5. Mean pooling over patches
+        x = self.norm(x.mean(dim=1))  # (batch, hidden_dim)
+        return x
 
     @property
     def output_dim(self) -> int:

@@ -1,0 +1,23 @@
+extends: base.yaml
+
+algo: rainbow
+network: mamba
+
+hyperparams:
+  lr: 0.0003
+  gamma: 0.99
+  n_step: 3
+  priority_alpha: 0.6
+  priority_beta: 0.4
+  epsilon_start: 1.0
+  epsilon_end: 0.01
+  epsilon_decay: 0.995
+  target_update: 10
+  replay_size: 10000
+
+net_params:
+  hidden_dim: 128
+  state_dim: 16
+  num_layers: 2
+  conv_kernel: 4
+  expand_factor: 2

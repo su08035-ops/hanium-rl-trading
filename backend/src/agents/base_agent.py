@@ -34,36 +34,12 @@ class BaseAgent(ABC):
 
     @abstractmethod
     def select_action(self, state, explore: bool = True) -> int:
-        """현재 상태에서 행동(0=매수, 1=매도, 2=관망)을 선택한다.
-
-        Parameters
-        ----------
-        state : array-like
-            환경에서 받은 관측값.
-        explore : bool
-            True이면 탐험(epsilon-greedy 등), False이면 greedy.
-
-        Returns
-        -------
-        int
-            선택된 행동 인덱스.
-        """
+        """현재 상태에서 행동(0=매수, 1=매도, 2=관망)을 선택한다."""
         ...
 
     @abstractmethod
-    def train_step(self, batch: dict) -> dict:
-        """한 스텝(또는 배치) 학습을 수행한다.
-
-        Parameters
-        ----------
-        batch : dict
-            {"states", "actions", "rewards", "next_states", "dones"} 등.
-
-        Returns
-        -------
-        dict
-            {"loss": float, ...} 학습 메트릭.
-        """
+    def train_step(self, batch: dict = None) -> dict:
+        """한 스텝(또는 배치) 학습을 수행한다."""
         ...
 
     @abstractmethod
@@ -75,3 +51,11 @@ class BaseAgent(ABC):
     def load(self, path: Path) -> None:
         """모델 체크포인트를 불러온다."""
         ...
+
+    def store_transition(self, state, action, reward, next_state, done):
+        """경험을 버퍼에 저장한다. 서브클래스에서 오버라이드."""
+        pass
+
+    def on_episode_end(self, episode: int):
+        """에피소드 종료 후 호출. epsilon 감소, 타깃 갱신 등."""
+        pass

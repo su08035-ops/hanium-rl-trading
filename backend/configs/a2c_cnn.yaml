@@ -1,0 +1,14 @@
+extends: base.yaml
+
+algo: a2c
+network: cnn
+
+hyperparams:
+  lr: 0.0007
+  gamma: 0.99
+  entropy_coef: 0.01
+  value_coef: 0.5
+
+net_params:
+  num_filters: 64
+  kernel_size: 3
