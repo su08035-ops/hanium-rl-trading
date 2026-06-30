@@ -21,6 +21,7 @@ from src.utils.logger import setup_logger, log_metrics
 from src.data.loader import fetch_ohlcv
 from src.data.preprocess import add_technical_indicators, normalize
 from src.env.trading_env import TradingEnv
+from src.data.theme_filter import build_theme_signal
 from src.networks.registry import NetworkRegistry
 from src.agents.registry import AgentRegistry
 
@@ -80,6 +81,22 @@ def main():
     df = normalize(df, method="zscore", train_end=cfg["data"]["train_end"])
     logger.info(f"데이터 shape: {df.shape}")
 
+    # 3-1. 테마 필터 (config에 theme 설정이 있으면 활성화)
+    theme_signal = None
+    theme_cfg = cfg.get("theme_filter")
+    if theme_cfg and theme_cfg.get("enabled", False):
+        logger.info(f"테마 필터 활성화: {theme_cfg['name']} (top_n={theme_cfg.get('top_n', 30)}, threshold={theme_cfg.get('threshold', 5.0)}%)")
+        theme_signal = build_theme_signal(
+            theme=theme_cfg["name"],
+            start=cfg["data"]["train_start"],
+            end=cfg["data"]["train_end"],
+            top_n=theme_cfg.get("top_n", 30),
+            threshold=theme_cfg.get("threshold", 5.0),
+        )
+        active_days = sum(1 for v in theme_signal.values() if v)
+        total_days = len(theme_signal)
+        logger.info(f"  - 테마 활성일: {active_days}/{total_days}일 ({active_days/max(total_days,1)*100:.1f}%)")
+
     # 4. 환경 생성
     env = TradingEnv(
         df=df,
@@ -87,6 +104,7 @@ def main():
         commission=cfg["env"]["commission"],
         window_size=cfg["env"]["window_size"],
         raw_prices=raw_close,
+        theme_signal=theme_signal,
     )
 
     # 5. 네트워크 + 에이전트 조립

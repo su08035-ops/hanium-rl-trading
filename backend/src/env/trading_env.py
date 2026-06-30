@@ -23,7 +23,8 @@ class TradingEnv(gym.Env):
 
     def __init__(self, df: pd.DataFrame, initial_balance: int = 10_000_000,
                  commission: float = 0.00015, window_size: int = 20,
-                 trade_ratio: float = 1.0, raw_prices: np.ndarray = None):
+                 trade_ratio: float = 1.0, raw_prices: np.ndarray = None,
+                 theme_signal: dict = None):
         """
         Parameters
         ----------
@@ -39,6 +40,9 @@ class TradingEnv(gym.Env):
             매수 시 잔고 대비 투자 비율 (1.0 = 전량).
         raw_prices : np.ndarray, optional
             정규화 전 원본 종가. None이면 df["close"] 사용.
+        theme_signal : dict, optional
+            {날짜(YYYYMMDD): bool} 테마 활성 신호.
+            None이면 매일 매매 허용, 주어지면 True인 날만 매수 허용.
         """
         super().__init__()
         self.df = df
@@ -46,6 +50,13 @@ class TradingEnv(gym.Env):
         self.commission = commission
         self.window_size = window_size
         self.trade_ratio = trade_ratio
+        self.theme_signal = theme_signal
+
+        # 날짜 인덱스 → 테마 활성 배열 변환
+        if theme_signal is not None and hasattr(df, "index"):
+            self._theme_active = self._build_theme_array(df, theme_signal)
+        else:
+            self._theme_active = None
 
         # 원본 종가 (매매 가격 계산용) — 정규화되지 않은 값
         self.prices = raw_prices if raw_prices is not None else df["close"].values
@@ -87,6 +98,13 @@ class TradingEnv(gym.Env):
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, dict]:
         """행동을 실행하고 다음 상태·보상을 반환한다."""
         current_price = self.prices[self.current_step]
+
+        # --- 테마 필터: 비활성일에는 매수 차단 ---
+        theme_blocked = False
+        if action == self.BUY and self._theme_active is not None:
+            if not self._theme_active[self.current_step]:
+                action = self.HOLD
+                theme_blocked = True
 
         # --- 행동 실행 ---
         if action == self.BUY and self.shares == 0 and self.balance > 0:
@@ -174,6 +192,20 @@ class TradingEnv(gym.Env):
             "profit_pct": (self.total_asset - self.initial_balance) / self.initial_balance,
             "n_trades": len(self.trades),
         }
+
+    @staticmethod
+    def _build_theme_array(df: pd.DataFrame, theme_signal: dict) -> np.ndarray:
+        """DataFrame 인덱스와 theme_signal을 매칭하여 bool 배열 생성."""
+        active = np.ones(len(df), dtype=bool)  # 기본값: True (매매 허용)
+        for i, idx in enumerate(df.index):
+            # 인덱스가 날짜 형식이면 YYYYMMDD로 변환
+            if hasattr(idx, "strftime"):
+                date_str = idx.strftime("%Y%m%d")
+            else:
+                date_str = str(idx).replace("-", "")[:8]
+            if date_str in theme_signal:
+                active[i] = theme_signal[date_str]
+        return active
 
     def render(self, mode="human"):
         info = self._get_info()
