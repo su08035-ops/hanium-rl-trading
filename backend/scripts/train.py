@@ -1,6 +1,8 @@
 """단일 실험 학습 스크립트.
 
-사용법: python train.py --config ../configs/dqn_dnn.yaml
+사용법:
+  python train.py --config ../configs/dqn_dnn.yaml
+  python train.py --config ../configs/dqn_dnn_2023.yaml --resume experiments/dqn_dnn_005930/best_model.pt
 """
 
 import argparse
@@ -40,6 +42,8 @@ def main():
     parser = argparse.ArgumentParser(description="RL Trading - 단일 실험 학습")
     parser.add_argument("--config", type=str, required=True,
                         help="실험 config 파일 경로")
+    parser.add_argument("--resume", type=str, default=None,
+                        help="이어서 학습할 체크포인트 경로 (.pt)")
     args = parser.parse_args()
 
     # 1. config 로드
@@ -106,6 +110,17 @@ def main():
     )
     logger.info(f"네트워크: {net_name} (input={flat_input_dim}, output={net.output_dim})")
     logger.info(f"에이전트: {algo_name} (device={device})")
+
+    # 5-1. 체크포인트 로드 (fine-tuning)
+    if args.resume:
+        resume_path = Path(args.resume)
+        if not resume_path.is_absolute():
+            resume_path = BACKEND_DIR / resume_path
+        agent.load(resume_path)
+        logger.info(f"체크포인트 로드: {resume_path}")
+        epsilon = getattr(agent, "epsilon", None)
+        if epsilon is not None:
+            logger.info(f"  - epsilon 복원: {epsilon:.4f}")
 
     # 6. 학습 루프
     episodes = cfg["train"]["episodes"]
