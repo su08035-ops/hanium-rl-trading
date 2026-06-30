@@ -17,7 +17,7 @@ env:
   window_size: 20            # 상태에 포함할 과거 일수
 
 train:
-  episodes: 500
+  episodes: 100
   batch_size: 64
   seed: 42
   device: "auto"             # auto → cuda if available else cpu
