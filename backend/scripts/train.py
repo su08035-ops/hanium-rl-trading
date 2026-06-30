@@ -91,7 +91,8 @@ def main():
             start=cfg["data"]["train_start"],
             end=cfg["data"]["train_end"],
             top_n=theme_cfg.get("top_n", 30),
-            threshold=theme_cfg.get("threshold", 5.0),
+            threshold=theme_cfg.get("threshold", 3.0),
+            min_theme_count=theme_cfg.get("min_theme_count", 1),
         )
         active_days = sum(1 for v in theme_signal.values() if v)
         total_days = len(theme_signal)
